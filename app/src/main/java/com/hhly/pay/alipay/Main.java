@@ -5,6 +5,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
+import android.os.Bundle;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -15,11 +16,12 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
 import static com.hhly.pay.alipay.VersionParam.ALIPAY_PACKAGE_NAME;
 import static de.robv.android.xposed.XposedBridge.log;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
+import static de.robv.android.xposed.XposedHelpers.findClass;
 
 
 public class Main implements IXposedHookLoadPackage {
-    private static Activity launcherUiActivity = null;
-
+    private static Activity launcherActivity = null;
+    private static LoadPackageParam m_lpparam;
     @Override
     public void handleLoadPackage(final LoadPackageParam lpparam) throws Throwable {
         if (lpparam.appInfo == null || (lpparam.appInfo.flags & (ApplicationInfo.FLAG_SYSTEM |
@@ -35,7 +37,7 @@ public class Main implements IXposedHookLoadPackage {
         }
 
         if (packageName.equals(ALIPAY_PACKAGE_NAME)) {
-            // hook 个人收取的onActivityResult方法
+            m_lpparam = lpparam;
             XposedHelpers.findAndHookMethod(Application.class,
                     "attach",
                     Context.class, new XC_MethodHook() {
@@ -48,6 +50,16 @@ public class Main implements IXposedHookLoadPackage {
                         }
                     });
 
+            // hook 微信主界面的onCreate方法，获得主界面对象
+            findAndHookMethod("com.alipay.mobile.quinox.LauncherActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    log("com.alipay.mobile.quinox.LauncherActivity onCreated" + "\n");
+                    launcherActivity = (Activity) param.thisObject;
+                }
+            });
+
+            // hook 个人收取的onActivityResult方法
             findAndHookMethod("com.alipay.mobile.payee.ui.PayeeQRActivity", lpparam.classLoader, "onActivityResult", int.class, int.class, Intent.class, new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
@@ -100,6 +112,14 @@ public class Main implements IXposedHookLoadPackage {
 
         } catch (Error | Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public static void launcherShouQianActivity() {
+        if (launcherActivity != null) {
+            log("launcherShouQianActivity" + "\n");
+            Intent intent = new Intent(launcherActivity, findClass("com.alipay.mobile.payee.ui.PayeeQRActivity", m_lpparam.classLoader));
+            launcherActivity.startActivity(intent);
         }
     }
 }
