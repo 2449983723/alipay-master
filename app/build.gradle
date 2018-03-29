@@ -1,0 +1,50 @@
+apply plugin: 'com.android.application'
+
+android {
+
+    signingConfigs {
+        debug {
+            keyAlias 'welfare_lottery_release'
+            keyPassword 'welfare_lottery168'
+            storeFile file('./../keystore/welfare_lottery_release_key.jks')
+            storePassword 'welfare_lottery168'
+        }
+        release {
+            keyAlias 'welfare_lottery_release'
+            keyPassword 'welfare_lottery168'
+            storeFile file('./../keystore/welfare_lottery_release_key.jks')
+            storePassword 'welfare_lottery168'
+        }
+    }
+
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+    defaultConfig {
+        applicationId "com.hhly.pay.alipay"
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode 32
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    provided files('libs/XposedBridgeApi-82.jar')
+    compile 'com.android.support:appcompat-v7:23.1.1'
+}
+
