@@ -16,5 +16,5 @@
 #   public *;
 #}
 
--keep class me.veryyoung.wechat.luckymoney.* { *; }
+-keep class com.hhly.pay.alipay.* { *; }
 -dontwarn okio.**
