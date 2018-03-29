@@ -30,11 +30,11 @@ public class Main implements IXposedHookLoadPackage {
         }
         final String packageName = lpparam.packageName;
 
-        if (packageName.equals(BuildConfig.APPLICATION_ID)) {
-            XposedHelpers.findAndHookMethod(BuildConfig.APPLICATION_ID + ".MainActivity", lpparam.classLoader,
-                    "isModuleActive", XC_MethodReplacement.returnConstant(true));
-            return;
-        }
+//        if (packageName.equals(BuildConfig.APPLICATION_ID)) {
+//            XposedHelpers.findAndHookMethod(BuildConfig.APPLICATION_ID + ".MainActivity", lpparam.classLoader,
+//                    "isModuleActive", XC_MethodReplacement.returnConstant(true));
+//            return;
+//        }
 
         if (packageName.equals(ALIPAY_PACKAGE_NAME)) {
             m_lpparam = lpparam;
