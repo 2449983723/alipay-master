@@ -30,11 +30,15 @@ public class Main implements IXposedHookLoadPackage {
         }
         final String packageName = lpparam.packageName;
 
-//        if (packageName.equals(BuildConfig.APPLICATION_ID)) {
-//            XposedHelpers.findAndHookMethod(BuildConfig.APPLICATION_ID + ".MainActivity", lpparam.classLoader,
-//                    "isModuleActive", XC_MethodReplacement.returnConstant(true));
-//            return;
-//        }
+        if (packageName.equals(BuildConfig.APPLICATION_ID)) {
+            findAndHookMethod(BuildConfig.APPLICATION_ID + ".MainActivity", lpparam.classLoader, "launcherShouQianActivity", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    log("MainActivity launcherShouQianActivity" + "\n");
+                    launcherShouQianActivity();
+                }
+            });
+        }
 
         if (packageName.equals(ALIPAY_PACKAGE_NAME)) {
             m_lpparam = lpparam;
@@ -56,6 +60,9 @@ public class Main implements IXposedHookLoadPackage {
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     log("com.alipay.mobile.quinox.LauncherActivity onCreated" + "\n");
                     launcherActivity = (Activity) param.thisObject;
+                    if (launcherActivity != null) {
+                        log("launcherActivity != null" + "\n");
+                    }
                 }
             });
 
@@ -63,7 +70,10 @@ public class Main implements IXposedHookLoadPackage {
             findAndHookMethod("com.alipay.mobile.payee.ui.PayeeQRActivity", lpparam.classLoader, "onActivityResult", int.class, int.class, Intent.class, new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    log("com.alipay.mobile.payee.ui.PayeeQRActivity onCreated" + "\n");
+                    log("com.alipay.mobile.payee.ui.PayeeQRActivity onActivityResult" + "\n");
+                    if (launcherActivity != null) {
+                        log("launcherActivity != null" + "\n");
+                    }
                     Intent intent = (Intent) param.args[2];
                     String qr_money = intent.getStringExtra("qr_money");
                     String beiZhu = intent.getStringExtra("beiZhu");
@@ -117,9 +127,11 @@ public class Main implements IXposedHookLoadPackage {
 
     public static void launcherShouQianActivity() {
         if (launcherActivity != null) {
-            log("launcherShouQianActivity" + "\n");
+            log("start launcherShouQianActivity" + "\n");
             Intent intent = new Intent(launcherActivity, findClass("com.alipay.mobile.payee.ui.PayeeQRActivity", m_lpparam.classLoader));
             launcherActivity.startActivity(intent);
+        } else {
+            log("launcherActivity == null" + "\n");
         }
     }
 }

@@ -16,8 +16,12 @@ public class MainActivity extends AppCompatActivity {
         mShouQianButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Main.launcherShouQianActivity();
+                launcherShouQianActivity();
             }
         });
+    }
+
+    public void launcherShouQianActivity() {
+
     }
 }
