@@ -6,6 +6,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
+import android.widget.Button;
+
+import java.lang.reflect.Field;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -14,6 +17,8 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
 
 import static com.hhly.pay.alipay.VersionParam.ALIPAY_PACKAGE_NAME;
+import static com.hhly.pay.alipay.VersionParam.BeiZu;
+import static com.hhly.pay.alipay.VersionParam.JinEr;
 import static de.robv.android.xposed.XposedBridge.log;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static de.robv.android.xposed.XposedHelpers.findClass;
@@ -63,6 +68,26 @@ public class Main implements IXposedHookLoadPackage {
                     if (launcherActivity != null) {
                         log("launcherActivity != null" + "\n");
                     }
+                }
+            });
+
+            // hook 微信主界面的onCreate方法，获得主界面对象
+            findAndHookMethod("com.alipay.mobile.payee.ui.PayeeQRSetMoneyActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    log("com.alipay.mobile.payee.ui.PayeeQRSetMoneyActivity onCreated" + "\n");
+                    Field jinErField = XposedHelpers.findField(param.thisObject.getClass(), "b");
+                    final Object jinErView = jinErField.get(param.thisObject);
+                    Field beiZhuField = XposedHelpers.findField(param.thisObject.getClass(), "c");
+                    final Object beiZhuView = beiZhuField.get(param.thisObject);
+                    log("JinEr:" + JinEr + "\n");
+                    log("BeiZu:" + BeiZu + "\n");
+                    XposedHelpers.callMethod(jinErView, "setText", "10");
+                    XposedHelpers.callMethod(beiZhuView, "setText", "测试");
+
+                    Field quRenField = XposedHelpers.findField(param.thisObject.getClass(), "e");
+                    final Button quRenButton = (Button) quRenField.get(param.thisObject);
+                    quRenButton.performClick();
                 }
             });
 
@@ -126,12 +151,12 @@ public class Main implements IXposedHookLoadPackage {
     }
 
     public static void launcherShouQianActivity() {
-        if (launcherActivity != null) {
-            log("start launcherShouQianActivity" + "\n");
-            Intent intent = new Intent(launcherActivity, findClass("com.alipay.mobile.payee.ui.PayeeQRActivity", m_lpparam.classLoader));
-            launcherActivity.startActivity(intent);
-        } else {
-            log("launcherActivity == null" + "\n");
-        }
+//        if (launcherActivity != null) {
+//            log("start launcherShouQianActivity" + "\n");
+//            Intent intent = new Intent(launcherActivity, findClass("com.eg.android.AlipayGphone.AlipayLogin", m_lpparam.classLoader));
+//            launcherActivity.startActivity(intent);
+//        } else {
+//            log("launcherActivity == null" + "\n");
+//        }
     }
 }
