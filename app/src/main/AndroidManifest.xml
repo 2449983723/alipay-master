@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.hhly.pay.alipay">
+    <uses-permission android:name="android.permission.ACCESS_SUPERUSER"/>
 
     <application
         android:label="@string/app_name"
+        android:name=".App"
         android:theme="@style/AppTheme">
         <activity
             android:name="com.hhly.pay.alipay.MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -15,6 +18,12 @@
             </intent-filter>
         </activity>
 
+        <receiver android:name=".boradcast.PluginBroadcast"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.eg.android.AlipayGphone.info"/>
+            </intent-filter>
+        </receiver>
         <meta-data
             android:name="xposedmodule"
             android:value="true" />

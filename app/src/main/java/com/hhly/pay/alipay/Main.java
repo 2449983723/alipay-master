@@ -4,9 +4,13 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.widget.Button;
+
+import com.hhly.pay.alipay.boradcast.AlipayBroadcast;
+import com.hhly.pay.alipay.boradcast.PluginBroadcast;
 
 import java.lang.reflect.Field;
 
@@ -17,16 +21,17 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
 
 import static com.hhly.pay.alipay.VersionParam.ALIPAY_PACKAGE_NAME;
-import static com.hhly.pay.alipay.VersionParam.BeiZu;
-import static com.hhly.pay.alipay.VersionParam.JinEr;
 import static de.robv.android.xposed.XposedBridge.log;
+import static de.robv.android.xposed.XposedHelpers.callMethod;
+import static de.robv.android.xposed.XposedHelpers.callStaticMethod;
 import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
 import static de.robv.android.xposed.XposedHelpers.findClass;
 
 
 public class Main implements IXposedHookLoadPackage {
-    private static Activity launcherActivity = null;
-    private static LoadPackageParam m_lpparam;
+    public static Activity launcherActivity = null;
+    private static AlipayBroadcast alipayBroadcast = null;
+
     @Override
     public void handleLoadPackage(final LoadPackageParam lpparam) throws Throwable {
         if (lpparam.appInfo == null || (lpparam.appInfo.flags & (ApplicationInfo.FLAG_SYSTEM |
@@ -35,18 +40,7 @@ public class Main implements IXposedHookLoadPackage {
         }
         final String packageName = lpparam.packageName;
 
-        if (packageName.equals(BuildConfig.APPLICATION_ID)) {
-            findAndHookMethod(BuildConfig.APPLICATION_ID + ".MainActivity", lpparam.classLoader, "launcherShouQianActivity", new XC_MethodHook() {
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    log("MainActivity launcherShouQianActivity" + "\n");
-                    launcherShouQianActivity();
-                }
-            });
-        }
-
         if (packageName.equals(ALIPAY_PACKAGE_NAME)) {
-            m_lpparam = lpparam;
             XposedHelpers.findAndHookMethod(Application.class,
                     "attach",
                     Context.class, new XC_MethodHook() {
@@ -59,15 +53,28 @@ public class Main implements IXposedHookLoadPackage {
                         }
                     });
 
-            // hook 微信主界面的onCreate方法，获得主界面对象
+            // hook 支付宝主界面的onCreate方法，获得主界面对象
             findAndHookMethod("com.alipay.mobile.quinox.LauncherActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     log("com.alipay.mobile.quinox.LauncherActivity onCreated" + "\n");
                     launcherActivity = (Activity) param.thisObject;
-                    if (launcherActivity != null) {
-                        log("launcherActivity != null" + "\n");
+                    alipayBroadcast = new AlipayBroadcast();
+                    IntentFilter intentFilter = new IntentFilter();
+                    intentFilter.addAction(AlipayBroadcast.INTENT_FILTER_ACTION);
+                    launcherActivity.registerReceiver(alipayBroadcast, intentFilter);
+                }
+            });
+
+            // hook 微信主界面的onCreate方法，获得主界面对象
+            findAndHookMethod("com.alipay.mobile.quinox.LauncherActivity", lpparam.classLoader, "onDestroy", new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    log("com.alipay.mobile.quinox.LauncherActivity onDestroy" + "\n");
+                    if (alipayBroadcast != null) {
+                        ((Activity) param.thisObject).unregisterReceiver(alipayBroadcast);
                     }
+                    launcherActivity = null;
                 }
             });
 
@@ -80,14 +87,38 @@ public class Main implements IXposedHookLoadPackage {
                     final Object jinErView = jinErField.get(param.thisObject);
                     Field beiZhuField = XposedHelpers.findField(param.thisObject.getClass(), "c");
                     final Object beiZhuView = beiZhuField.get(param.thisObject);
-                    log("JinEr:" + JinEr + "\n");
-                    log("BeiZu:" + BeiZu + "\n");
-                    XposedHelpers.callMethod(jinErView, "setText", "10");
-                    XposedHelpers.callMethod(beiZhuView, "setText", "测试");
+                    Intent intent = ((Activity) param.thisObject).getIntent();
+                    String jinEr = intent.getStringExtra("qr_money");
+                    String beiZu = intent.getStringExtra("beiZhu");
+                    log("JinEr:" + jinEr + "\n");
+                    log("BeiZu:" + beiZu + "\n");
+                    XposedHelpers.callMethod(jinErView, "setText", jinEr);
+                    XposedHelpers.callMethod(beiZhuView, "setText", beiZu);
 
                     Field quRenField = XposedHelpers.findField(param.thisObject.getClass(), "e");
                     final Button quRenButton = (Button) quRenField.get(param.thisObject);
                     quRenButton.performClick();
+                }
+            });
+
+            // hook 微信主界面的onCreate方法，获得主界面对象
+            findAndHookMethod("com.alipay.mobile.payee.ui.PayeeQRActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    log("com.alipay.mobile.payee.ui.PayeeQRActivity onCreated" + "\n");
+                    Intent intent = ((Activity) param.thisObject).getIntent();
+                    if (intent != null) {
+                        String qr_money = intent.getStringExtra("qr_money");
+                        String beiZhu = intent.getStringExtra("beiZhu");
+                        if (qr_money != null) {
+                            log("JinEr:" + qr_money + "\n");
+                            log("BeiZu:" + beiZhu + "\n");
+                            Intent launcherIntent = new Intent((Activity) param.thisObject, XposedHelpers.findClass("com.alipay.mobile.payee.ui.PayeeQRSetMoneyActivity", lpparam.classLoader));
+                            launcherIntent.putExtra("qr_money", qr_money);
+                            launcherIntent.putExtra("beiZhu", beiZhu);
+                            ((Activity) param.thisObject).startActivityForResult(launcherIntent, 10);
+                        }
+                    }
                 }
             });
 
@@ -96,18 +127,80 @@ public class Main implements IXposedHookLoadPackage {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     log("com.alipay.mobile.payee.ui.PayeeQRActivity onActivityResult" + "\n");
-                    if (launcherActivity != null) {
-                        log("launcherActivity != null" + "\n");
-                    }
                     Intent intent = (Intent) param.args[2];
-                    String qr_money = intent.getStringExtra("qr_money");
-                    String beiZhu = intent.getStringExtra("beiZhu");
-                    String qrCodeUrl = intent.getStringExtra("qrCodeUrl");
-                    String qrCodeUrlOffline = intent.getStringExtra("qrCodeUrlOffline");
-                    log("qr_money:" + qr_money + "\n");
-                    log("beiZhu:" + beiZhu + "\n");
-                    log("qrCodeUrl:" + qrCodeUrl + "\n");
-                    log("qrCodeUrlOffline:" + qrCodeUrlOffline + "\n");
+                    if (intent != null) {
+                        String qr_money = intent.getStringExtra("qr_money");
+                        String beiZhu = intent.getStringExtra("beiZhu");
+                        String qrCodeUrl = intent.getStringExtra("qrCodeUrl");
+                        String qrCodeUrlOffline = intent.getStringExtra("qrCodeUrlOffline");
+                        Intent broadCastIntent = new Intent();
+                        broadCastIntent.putExtra("qr_money", qr_money);
+                        broadCastIntent.putExtra("beiZhu", beiZhu);
+                        broadCastIntent.putExtra("qrCodeUrl", qrCodeUrl);
+                        broadCastIntent.putExtra("qrCodeUrlOffline", qrCodeUrlOffline);
+                        broadCastIntent.setAction(PluginBroadcast.INTENT_FILTER_ACTION);
+                        Activity activity = (Activity) param.thisObject;
+                        activity.sendBroadcast(broadCastIntent);
+                        log("qr_money:" + qr_money + "\n");
+                        log("beiZhu:" + beiZhu + "\n");
+                        log("qrCodeUrl:" + qrCodeUrl + "\n");
+                        log("qrCodeUrlOffline:" + qrCodeUrlOffline + "\n");
+
+                        Object appInfo = callStaticMethod(findClass("com.ali.user.mobile.info.AppInfo", lpparam.classLoader), "getInstance");
+                        if (appInfo != null) {
+                            log("com.ali.user.mobile.info.AppInfo != null");
+                            String apdidToken = (String)callMethod(appInfo, "getApdidToken");
+                            log("apdidToken " + apdidToken);
+                            String apdid = (String)callMethod(appInfo, "getApdid");
+                            log("apdid " + apdid);
+                            String appKey = (String)callMethod(appInfo, "getAppKey", launcherActivity);
+                            log("appKey " + appKey);
+                            String channel = (String)callMethod(appInfo, "getChannel");
+                            log("getChannel " + channel);
+                            String productId = (String)callMethod(appInfo, "getProductId");
+                            log("productId " + productId);
+                            String umid = (String)callMethod(appInfo, "getUmid");
+                            log("umid " + umid);
+                            String deviceKeySet = (String)callMethod(appInfo, "getDeviceKeySet");
+                            log("deviceKeySet " + deviceKeySet);
+                            String deviceId = (String)callMethod(appInfo, "getDeviceId");
+                            log("deviceId " + deviceId);
+                        }
+
+                        String token = (String)callStaticMethod(findClass("com.alipay.mobile.nebula.log.H5Logger", lpparam.classLoader), "getToken");
+                        if (token != null) {
+                            log("com.alipay.mobile.nebula.log.H5Logger getToken");
+                            log("token " + token);
+                        }
+
+                        String sessionid = (String)callStaticMethod(findClass("com.alipay.mobile.common.transportext.biz.appevent.AmnetUserInfo", lpparam.classLoader), "getSessionid");
+                        log("sessionid " + sessionid);
+                        ((Activity) param.thisObject).finish();
+                    }
+                }
+            });
+
+            // hook 微信主界面的onCreate方法，获得主界面对象
+            findAndHookMethod("com.alipay.mobile.common.transportext.biz.appevent.AmnetUserInfo", lpparam.classLoader, "getSessionidFromCookiestr", String.class, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    log("com.alipay.mobile.common.transportext.biz.appevent getSessionidFromCookiestr" + "\n");
+                    String cookieStr = (String)param.args[0];
+                    log("cookieStr " + cookieStr);
+                }
+            });
+
+            // hook 微信主界面的onCreate方法，获得主界面对象
+            findAndHookMethod("com.alipay.mobile.nebulacore.ui.H5Activity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    log("com.alipay.mobile.nebulacore.ui.H5Activity onCreated" + "\n");
+                    Intent intent = ((Activity) param.thisObject).getIntent();
+                    if (intent != null) {
+                        if (intent.getStringExtra("url") != null) {
+                            log("url" + intent.getStringExtra("url"));
+                        }
+                    }
                 }
             });
         }
@@ -148,15 +241,5 @@ public class Main implements IXposedHookLoadPackage {
         } catch (Error | Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static void launcherShouQianActivity() {
-//        if (launcherActivity != null) {
-//            log("start launcherShouQianActivity" + "\n");
-//            Intent intent = new Intent(launcherActivity, findClass("com.eg.android.AlipayGphone.AlipayLogin", m_lpparam.classLoader));
-//            launcherActivity.startActivity(intent);
-//        } else {
-//            log("launcherActivity == null" + "\n");
-//        }
     }
 }
