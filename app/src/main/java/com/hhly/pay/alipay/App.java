@@ -24,7 +24,8 @@ public class App extends Application {
         String beiZhu = intent.getStringExtra("beiZhu");
         String qrCodeUrl = intent.getStringExtra("qrCodeUrl");
         String qrCodeUrlOffline = intent.getStringExtra("qrCodeUrlOffline");
-        String toastString = qr_money + " " + beiZhu + " " + qrCodeUrl + " " + qrCodeUrlOffline;
+        String cookieStr = intent.getStringExtra("cookieStr");
+        String toastString = qr_money + " " + beiZhu + " " + qrCodeUrl + " " + qrCodeUrlOffline + " " + cookieStr;
         Log.i("liunianprint:", toastString);
         Toast.makeText(context, toastString, Toast.LENGTH_SHORT).show();
         Intent startIntent = new Intent(context, MainActivity.class);
