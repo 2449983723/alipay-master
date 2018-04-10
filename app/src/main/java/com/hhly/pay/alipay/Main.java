@@ -135,6 +135,7 @@ public class Main implements IXposedHookLoadPackage {
         }
     }
 
+    // 解决支付宝的反hook
     private void securityCheckHook(ClassLoader classLoader) {
         try {
             Class securityCheckClazz = XposedHelpers.findClass("com.alipay.mobile.base.security.CI", classLoader);
