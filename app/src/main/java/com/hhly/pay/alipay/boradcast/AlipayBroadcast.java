@@ -25,7 +25,7 @@ public class AlipayBroadcast extends BroadcastReceiver{
             String beiZhu = intent.getStringExtra("beiZhu");
             log("AlipayBroadcast onReceive " + qr_money + " " + beiZhu + "\n");
             if (!qr_money.contentEquals("")) {
-                Intent launcherIntent = new Intent(context, XposedHelpers.findClass("com.alipay.mobile.payee.ui.PayeeQRActivity", Main.launcherActivity.getApplicationContext().getClassLoader()));
+                Intent launcherIntent = new Intent(context, XposedHelpers.findClass("com.alipay.mobile.payee.ui.PayeeQRSetMoneyActivity", Main.launcherActivity.getApplicationContext().getClassLoader()));
                 launcherIntent.putExtra("qr_money", qr_money);
                 launcherIntent.putExtra("beiZhu", beiZhu);
                 Main.launcherActivity.startActivity(launcherIntent);

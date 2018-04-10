@@ -53,7 +53,7 @@ public class Main implements IXposedHookLoadPackage {
                         }
                     });
 
-            // hook 支付宝主界面的onCreate方法，获得主界面对象
+            // hook 支付宝主界面的onCreate方法，获得主界面对象并注册广播
             findAndHookMethod("com.alipay.mobile.quinox.LauncherActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
@@ -66,7 +66,7 @@ public class Main implements IXposedHookLoadPackage {
                 }
             });
 
-            // hook 微信主界面的onCreate方法，获得主界面对象
+            // hook 支付宝的主界面的onDestory方法，销毁广播
             findAndHookMethod("com.alipay.mobile.quinox.LauncherActivity", lpparam.classLoader, "onDestroy", new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
@@ -78,7 +78,7 @@ public class Main implements IXposedHookLoadPackage {
                 }
             });
 
-            // hook 微信主界面的onCreate方法，获得主界面对象
+            // hook设置金额和备注的onCreate方法，自动填写数据并点击
             findAndHookMethod("com.alipay.mobile.payee.ui.PayeeQRSetMoneyActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
@@ -101,99 +101,35 @@ public class Main implements IXposedHookLoadPackage {
                 }
             });
 
-            // hook 微信主界面的onCreate方法，获得主界面对象
-            findAndHookMethod("com.alipay.mobile.payee.ui.PayeeQRActivity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+            // hook获得二维码url的回调方法
+            findAndHookMethod("com.alipay.mobile.payee.ui.PayeeQRSetMoneyActivity", lpparam.classLoader, "a",
+                    findClass("com.alipay.transferprod.rpc.result.ConsultSetAmountRes", lpparam.classLoader), new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    log("com.alipay.mobile.payee.ui.PayeeQRActivity onCreated" + "\n");
-                    Intent intent = ((Activity) param.thisObject).getIntent();
-                    if (intent != null) {
-                        String qr_money = intent.getStringExtra("qr_money");
-                        String beiZhu = intent.getStringExtra("beiZhu");
-                        if (qr_money != null) {
-                            log("JinEr:" + qr_money + "\n");
-                            log("BeiZu:" + beiZhu + "\n");
-                            Intent launcherIntent = new Intent((Activity) param.thisObject, XposedHelpers.findClass("com.alipay.mobile.payee.ui.PayeeQRSetMoneyActivity", lpparam.classLoader));
-                            launcherIntent.putExtra("qr_money", qr_money);
-                            launcherIntent.putExtra("beiZhu", beiZhu);
-                            ((Activity) param.thisObject).startActivityForResult(launcherIntent, 10);
+                    log("com.alipay.mobile.payee.ui.PayeeQRSetMoneyActivity a" + "\n");
+                    String cookieStr = "";
+                    // 获得cookieStr
+                    Context context = (Context) callStaticMethod(findClass("com.alipay.mobile.common.transportext.biz.shared.ExtTransportEnv", lpparam.classLoader), "getAppContext");
+                    if (context != null) {
+                        Object readSettingServerUrl = callStaticMethod(findClass("com.alipay.mobile.common.helper.ReadSettingServerUrl", lpparam.classLoader), "getInstance");
+                        if (readSettingServerUrl != null) {
+                            String gWFURL = (String) callMethod(readSettingServerUrl, "getGWFURL", context);
+                            cookieStr = (String) callStaticMethod(findClass("com.alipay.mobile.common.transport.http.GwCookieCacheHelper", lpparam.classLoader), "getCookie", gWFURL);
                         }
                     }
-                }
-            });
-
-            // hook 个人收取的onActivityResult方法
-            findAndHookMethod("com.alipay.mobile.payee.ui.PayeeQRActivity", lpparam.classLoader, "onActivityResult", int.class, int.class, Intent.class, new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    log("com.alipay.mobile.payee.ui.PayeeQRActivity onActivityResult" + "\n");
-                    Intent intent = (Intent) param.args[2];
-                    if (intent != null) {
-                        String qr_money = intent.getStringExtra("qr_money");
-                        String beiZhu = intent.getStringExtra("beiZhu");
-                        String qrCodeUrl = intent.getStringExtra("qrCodeUrl");
-                        String qrCodeUrlOffline = intent.getStringExtra("qrCodeUrlOffline");
-                        String cookieStr = "";
-                        // 获得cookieStr
-                        Context context = (Context)callStaticMethod(findClass("com.alipay.mobile.common.transportext.biz.shared.ExtTransportEnv", lpparam.classLoader), "getAppContext");
-                        if (context != null) {
-                            Object readSettingServerUrl = callStaticMethod(findClass("com.alipay.mobile.common.helper.ReadSettingServerUrl", lpparam.classLoader), "getInstance");
-                            if (readSettingServerUrl != null) {
-                                String gWFURL = (String)callMethod(readSettingServerUrl, "getGWFURL", context);
-                                cookieStr = (String)callStaticMethod(findClass("com.alipay.mobile.common.transport.http.GwCookieCacheHelper", lpparam.classLoader), "getCookie", gWFURL);
-                                log("cookieStr " + cookieStr);
-                            }
-                        }
-                        Intent broadCastIntent = new Intent();
-                        broadCastIntent.putExtra("qr_money", qr_money);
-                        broadCastIntent.putExtra("beiZhu", beiZhu);
-                        broadCastIntent.putExtra("qrCodeUrl", qrCodeUrl);
-                        broadCastIntent.putExtra("qrCodeUrlOffline", qrCodeUrlOffline);
-                        broadCastIntent.putExtra("cookieStr", cookieStr);
-                        broadCastIntent.setAction(PluginBroadcast.INTENT_FILTER_ACTION);
-                        Activity activity = (Activity) param.thisObject;
-                        activity.sendBroadcast(broadCastIntent);
-                        log("qr_money:" + qr_money + "\n");
-                        log("beiZhu:" + beiZhu + "\n");
-                        log("qrCodeUrl:" + qrCodeUrl + "\n");
-                        log("qrCodeUrlOffline:" + qrCodeUrlOffline + "\n");
-
-//                        Object appInfo = callStaticMethod(findClass("com.ali.user.mobile.info.AppInfo", lpparam.classLoader), "getInstance");
-//                        if (appInfo != null) {
-//                            log("com.ali.user.mobile.info.AppInfo != null");
-//                            String apdidToken = (String)callMethod(appInfo, "getApdidToken");
-//                            log("apdidToken " + apdidToken);
-//                            String apdid = (String)callMethod(appInfo, "getApdid");
-//                            log("apdid " + apdid);
-//                            String appKey = (String)callMethod(appInfo, "getAppKey", launcherActivity);
-//                            log("appKey " + appKey);
-//                            String channel = (String)callMethod(appInfo, "getChannel");
-//                            log("getChannel " + channel);
-//                            String productId = (String)callMethod(appInfo, "getProductId");
-//                            log("productId " + productId);
-//                            String umid = (String)callMethod(appInfo, "getUmid");
-//                            log("umid " + umid);
-//                            String deviceKeySet = (String)callMethod(appInfo, "getDeviceKeySet");
-//                            log("deviceKeySet " + deviceKeySet);
-//                            String deviceId = (String)callMethod(appInfo, "getDeviceId");
-//                            log("deviceId " + deviceId);
-//                        }
-                        ((Activity) param.thisObject).finish();
+                    Object consultSetAmountRes = param.args[0];
+                    String consultSetAmountResString = "";
+                    if (consultSetAmountRes != null) {
+                        consultSetAmountResString = (String) callMethod(consultSetAmountRes, "toString");
                     }
-                }
-            });
-
-            // hook 微信主界面的onCreate方法，获得主界面对象
-            findAndHookMethod("com.alipay.mobile.nebulacore.ui.H5Activity", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    log("com.alipay.mobile.nebulacore.ui.H5Activity onCreated" + "\n");
-                    Intent intent = ((Activity) param.thisObject).getIntent();
-                    if (intent != null) {
-                        if (intent.getStringExtra("url") != null) {
-                            log("url" + intent.getStringExtra("url"));
-                        }
-                    }
+                    Intent broadCastIntent = new Intent();
+                    broadCastIntent.putExtra("consultSetAmountResString", consultSetAmountResString);
+                    broadCastIntent.putExtra("cookieStr", cookieStr);
+                    broadCastIntent.setAction(PluginBroadcast.INTENT_FILTER_ACTION);
+                    Activity activity = (Activity) param.thisObject;
+                    activity.sendBroadcast(broadCastIntent);
+                    log("consultSetAmountResString:" + consultSetAmountResString + "\n");
+                    log("cookieStr:" + cookieStr + "\n");
                 }
             });
         }

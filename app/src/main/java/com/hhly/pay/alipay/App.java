@@ -20,12 +20,9 @@ public class App extends Application {
     }
 
     public static void dealAlipayInfo(Context context, Intent intent) {
-        String qr_money = intent.getStringExtra("qr_money");
-        String beiZhu = intent.getStringExtra("beiZhu");
-        String qrCodeUrl = intent.getStringExtra("qrCodeUrl");
-        String qrCodeUrlOffline = intent.getStringExtra("qrCodeUrlOffline");
+        String consultSetAmountResString = intent.getStringExtra("consultSetAmountResString");
         String cookieStr = intent.getStringExtra("cookieStr");
-        String toastString = qr_money + " " + beiZhu + " " + qrCodeUrl + " " + qrCodeUrlOffline + " " + cookieStr;
+        String toastString = consultSetAmountResString + " " + cookieStr;
         Log.i("liunianprint:", toastString);
         Toast.makeText(context, toastString, Toast.LENGTH_SHORT).show();
         Intent startIntent = new Intent(context, MainActivity.class);
