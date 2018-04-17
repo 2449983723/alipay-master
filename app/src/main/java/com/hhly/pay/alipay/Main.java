@@ -133,6 +133,7 @@ public class Main implements IXposedHookLoadPackage {
         String cookieStr = "";
         // 获得cookieStr
         if (m_lpparam != null) {
+            callStaticMethod(findClass("com.alipay.mobile.common.transportext.biz.appevent.AmnetUserInfo", Main.m_lpparam.classLoader), "getSessionid");
             Context context = (Context) callStaticMethod(findClass("com.alipay.mobile.common.transportext.biz.shared.ExtTransportEnv", Main.m_lpparam.classLoader), "getAppContext");
             if (context != null) {
                 Object readSettingServerUrl = callStaticMethod(findClass("com.alipay.mobile.common.helper.ReadSettingServerUrl", Main.m_lpparam.classLoader), "getInstance");
