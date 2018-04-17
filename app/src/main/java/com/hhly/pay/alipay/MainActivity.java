@@ -15,6 +15,7 @@ import static com.hhly.pay.alipay.VersionParam.ALIPAY_PACKAGE_NAME;
 
 public class MainActivity extends AppCompatActivity {
     private Button mShouQianButton;
+    private Button mGetCookieButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +35,21 @@ public class MainActivity extends AppCompatActivity {
                 Random random = new Random();
                 broadCastIntent.putExtra("qr_money", String.valueOf(random.nextInt(100) + 1));
                 broadCastIntent.putExtra("beiZhu", "测试");
-                broadCastIntent.setAction(AlipayBroadcast.INTENT_FILTER_ACTION);
+                broadCastIntent.setAction(AlipayBroadcast.CONSULT_SET_AMOUNT_RES_STRING_INTENT_FILTER_ACTION);
+                sendBroadcast(broadCastIntent);
+            }
+        });
+
+        mGetCookieButton = (Button) findViewById(R.id.get_cookie);
+        mGetCookieButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = getPackageManager().getLaunchIntentForPackage(ALIPAY_PACKAGE_NAME);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+
+                Intent broadCastIntent = new Intent();
+                broadCastIntent.setAction(AlipayBroadcast.COOKIE_STR_INTENT_FILTER_ACTION);
                 sendBroadcast(broadCastIntent);
             }
         });

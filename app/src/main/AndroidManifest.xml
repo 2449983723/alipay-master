@@ -21,7 +21,8 @@
         <receiver android:name=".boradcast.PluginBroadcast"
             android:exported="true">
             <intent-filter>
-                <action android:name="com.eg.android.AlipayGphone.info"/>
+                <action android:name="com.eg.android.AlipayGphone.info.consultSetAmountResString"/>
+                <action android:name="com.eg.android.AlipayGphone.info.cookieStr"/>
             </intent-filter>
         </receiver>
         <meta-data

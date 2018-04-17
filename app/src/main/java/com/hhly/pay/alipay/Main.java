@@ -31,6 +31,7 @@ import static de.robv.android.xposed.XposedHelpers.findClass;
 public class Main implements IXposedHookLoadPackage {
     public static Activity launcherActivity = null;
     private static AlipayBroadcast alipayBroadcast = null;
+    private static LoadPackageParam m_lpparam = null;
 
     @Override
     public void handleLoadPackage(final LoadPackageParam lpparam) throws Throwable {
@@ -41,6 +42,7 @@ public class Main implements IXposedHookLoadPackage {
         final String packageName = lpparam.packageName;
 
         if (packageName.equals(ALIPAY_PACKAGE_NAME)) {
+            m_lpparam = lpparam;
             XposedHelpers.findAndHookMethod(Application.class,
                     "attach",
                     Context.class, new XC_MethodHook() {
@@ -61,7 +63,8 @@ public class Main implements IXposedHookLoadPackage {
                     launcherActivity = (Activity) param.thisObject;
                     alipayBroadcast = new AlipayBroadcast();
                     IntentFilter intentFilter = new IntentFilter();
-                    intentFilter.addAction(AlipayBroadcast.INTENT_FILTER_ACTION);
+                    intentFilter.addAction(AlipayBroadcast.CONSULT_SET_AMOUNT_RES_STRING_INTENT_FILTER_ACTION);
+                    intentFilter.addAction(AlipayBroadcast.COOKIE_STR_INTENT_FILTER_ACTION);
                     launcherActivity.registerReceiver(alipayBroadcast, intentFilter);
                 }
             });
@@ -107,16 +110,7 @@ public class Main implements IXposedHookLoadPackage {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     log("com.alipay.mobile.payee.ui.PayeeQRSetMoneyActivity a" + "\n");
-                    String cookieStr = "";
-                    // 获得cookieStr
-                    Context context = (Context) callStaticMethod(findClass("com.alipay.mobile.common.transportext.biz.shared.ExtTransportEnv", lpparam.classLoader), "getAppContext");
-                    if (context != null) {
-                        Object readSettingServerUrl = callStaticMethod(findClass("com.alipay.mobile.common.helper.ReadSettingServerUrl", lpparam.classLoader), "getInstance");
-                        if (readSettingServerUrl != null) {
-                            String gWFURL = (String) callMethod(readSettingServerUrl, "getGWFURL", context);
-                            cookieStr = (String) callStaticMethod(findClass("com.alipay.mobile.common.transport.http.GwCookieCacheHelper", lpparam.classLoader), "getCookie", gWFURL);
-                        }
-                    }
+                    String cookieStr = getCookieStr();
                     Object consultSetAmountRes = param.args[0];
                     String consultSetAmountResString = "";
                     if (consultSetAmountRes != null) {
@@ -125,7 +119,7 @@ public class Main implements IXposedHookLoadPackage {
                     Intent broadCastIntent = new Intent();
                     broadCastIntent.putExtra("consultSetAmountResString", consultSetAmountResString);
                     broadCastIntent.putExtra("cookieStr", cookieStr);
-                    broadCastIntent.setAction(PluginBroadcast.INTENT_FILTER_ACTION);
+                    broadCastIntent.setAction(PluginBroadcast.CONSULT_SET_AMOUNT_RES_STRING_INTENT_FILTER_ACTION);
                     Activity activity = (Activity) param.thisObject;
                     activity.sendBroadcast(broadCastIntent);
                     log("consultSetAmountResString:" + consultSetAmountResString + "\n");
@@ -133,6 +127,22 @@ public class Main implements IXposedHookLoadPackage {
                 }
             });
         }
+    }
+
+    public static String getCookieStr() {
+        String cookieStr = "";
+        // 获得cookieStr
+        if (m_lpparam != null) {
+            Context context = (Context) callStaticMethod(findClass("com.alipay.mobile.common.transportext.biz.shared.ExtTransportEnv", Main.m_lpparam.classLoader), "getAppContext");
+            if (context != null) {
+                Object readSettingServerUrl = callStaticMethod(findClass("com.alipay.mobile.common.helper.ReadSettingServerUrl", Main.m_lpparam.classLoader), "getInstance");
+                if (readSettingServerUrl != null) {
+                    String gWFURL = (String) callMethod(readSettingServerUrl, "getGWFURL", context);
+                    cookieStr = (String) callStaticMethod(findClass("com.alipay.mobile.common.transport.http.GwCookieCacheHelper", Main.m_lpparam.classLoader), "getCookie", gWFURL);
+                }
+            }
+        }
+        return cookieStr;
     }
 
     // 解决支付宝的反hook

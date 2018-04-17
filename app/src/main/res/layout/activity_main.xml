@@ -4,10 +4,24 @@
     android:layout_height="match_parent"
     android:background="@color/white">
 
-    <Button
-        android:layout_centerInParent="true"
-        android:id="@+id/shouqian"
-        android:text="收钱"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_centerVertical="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <Button
+            android:layout_gravity="center_horizontal"
+            android:id="@+id/shouqian"
+            android:text="收钱"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:layout_marginTop="30dip"
+            android:layout_gravity="center_horizontal"
+            android:id="@+id/get_cookie"
+            android:text="获得cookie"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
 </RelativeLayout>
